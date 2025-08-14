@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -44,13 +44,20 @@ import PageLayout from "@/components/PageLayout";
 
 export default function PortfolioListPage() {
   const { user, isAdmin, loading } = useAuth();
+
+  // Memoize loader function to prevent continuous re-renders
+  const portfolioLoader = useCallback(
+    () => portfolioService.getAllProjects(),
+    []
+  );
+
   const {
     data: projects,
     loading: loadingProjects,
     error,
     refetch,
   } = useDataLoader({
-    loader: () => portfolioService.getAllProjects(),
+    loader: portfolioLoader,
   });
 
   const handleDeleteProject = async (projectId: string) => {
