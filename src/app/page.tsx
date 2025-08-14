@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,12 +72,19 @@ const skills = [
 ];
 
 export default function Home() {
+  // Memoize loader functions to prevent continuous re-renders
+  const portfolioLoader = useCallback(
+    () => portfolioService.getProjects(3),
+    []
+  );
+  const blogLoader = useCallback(() => blogService.getPosts(3), []);
+
   const {
     data: portfolioItems,
     loading: portfolioLoading,
     error: portfolioError,
   } = useDataLoader({
-    loader: () => portfolioService.getProjects(3),
+    loader: portfolioLoader,
   });
 
   const {
@@ -85,7 +92,7 @@ export default function Home() {
     loading: blogLoading,
     error: blogError,
   } = useDataLoader({
-    loader: () => blogService.getPosts(3),
+    loader: blogLoader,
   });
 
   const [isDownloading, setIsDownloading] = useState(false);

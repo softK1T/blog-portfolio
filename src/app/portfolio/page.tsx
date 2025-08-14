@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +18,15 @@ import ContentGrid from "@/components/ContentGrid";
 import ContentCard from "@/components/ContentCard";
 
 export default function PortfolioPage() {
+  // Memoize loader function to prevent continuous re-renders
+  const portfolioLoader = useCallback(() => portfolioService.getProjects(), []);
+
   const {
     data: portfolioItems,
     loading,
     error,
   } = useDataLoader({
-    loader: () => portfolioService.getProjects(),
+    loader: portfolioLoader,
   });
 
   return (

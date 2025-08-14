@@ -11,6 +11,16 @@ interface UseDataLoaderResult<T> {
   refetch: () => Promise<void>;
 }
 
+/**
+ * Custom hook for loading data with proper memoization to prevent continuous requests.
+ * The loader function should be memoized using useCallback to prevent unnecessary re-renders.
+ *
+ * @example
+ * ```tsx
+ * const loader = useCallback(() => service.getData(), []);
+ * const { data, loading, error } = useDataLoader({ loader });
+ * ```
+ */
 export function useDataLoader<T>({
   loader,
 }: UseDataLoaderOptions<T>): UseDataLoaderResult<T> {

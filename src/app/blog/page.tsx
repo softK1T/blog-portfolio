@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, FileText } from "lucide-react";
@@ -11,12 +11,15 @@ import ContentGrid from "@/components/ContentGrid";
 import ContentCard from "@/components/ContentCard";
 
 export default function BlogPage() {
+  // Memoize loader function to prevent continuous re-renders
+  const blogLoader = useCallback(() => blogService.getPosts(), []);
+
   const {
     data: posts,
     loading,
     error,
   } = useDataLoader({
-    loader: () => blogService.getPosts(),
+    loader: blogLoader,
   });
 
   return (
