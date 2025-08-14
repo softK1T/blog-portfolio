@@ -5,8 +5,6 @@ import {
   GetObjectCommand,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
 
 // Types
 export interface ResumeInfo {
@@ -26,20 +24,32 @@ interface SerializedResumeInfo {
 }
 
 // Constants
-const RESUME_METADATA_FILE = join(process.cwd(), "data", "current-resume.json");
 const RESUME_METADATA_S3_KEY = "uploads/resumes/metadata.json";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// S3 Client
-const s3Client = new S3Client({
-  endpoint: process.env.ENDPOINT,
-  region: "auto",
-  credentials: {
-    accessKeyId: process.env.ACCESS_KEY_ID!,
-    secretAccessKey: process.env.SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-});
+// S3 Client - with robust error handling for Vercel
+function createS3Client(): S3Client {
+  const endpoint = process.env.ENDPOINT;
+  const accessKeyId = process.env.ACCESS_KEY_ID;
+  const secretAccessKey = process.env.SECRET_ACCESS_KEY;
+  const bucketName = process.env.BUCKET_NAME;
+
+  if (!endpoint || !accessKeyId || !secretAccessKey || !bucketName) {
+    throw new Error(
+      "Missing required S3 environment variables: ENDPOINT, ACCESS_KEY_ID, SECRET_ACCESS_KEY, BUCKET_NAME"
+    );
+  }
+
+  return new S3Client({
+    endpoint,
+    region: "auto",
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+    forcePathStyle: true,
+  });
+}
 
 // Validation
 class ResumeValidationError extends Error {
@@ -59,51 +69,11 @@ function validateResumeFile(file: File): void {
   }
 }
 
-// File System Operations
-class FileSystemManager {
-  static ensureDataDirectory(): void {
-    const dataDir = join(process.cwd(), "data");
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
-    }
-  }
-
-  static saveMetadata(resume: ResumeInfo): void {
-    try {
-      this.ensureDataDirectory();
-      const metadata: SerializedResumeInfo = {
-        ...resume,
-        uploadedAt: resume.uploadedAt.toISOString(),
-      };
-      writeFileSync(RESUME_METADATA_FILE, JSON.stringify(metadata, null, 2));
-    } catch (error) {
-      console.error("Error saving resume metadata to file:", error);
-      throw new Error("Failed to save resume metadata");
-    }
-  }
-
-  static loadMetadata(): ResumeInfo | null {
-    try {
-      if (!existsSync(RESUME_METADATA_FILE)) {
-        return null;
-      }
-      const data = readFileSync(RESUME_METADATA_FILE, "utf8");
-      const metadata: SerializedResumeInfo = JSON.parse(data);
-      return {
-        ...metadata,
-        uploadedAt: new Date(metadata.uploadedAt),
-      };
-    } catch (error) {
-      console.error("Error loading resume metadata from file:", error);
-      return null;
-    }
-  }
-}
-
 // S3 Operations
 class S3Manager {
   static async saveMetadata(metadata: SerializedResumeInfo): Promise<void> {
     try {
+      const s3Client = createS3Client();
       const metadataJson = JSON.stringify(metadata, null, 2);
       const buffer = Buffer.from(metadataJson, "utf8");
 
@@ -117,12 +87,13 @@ class S3Manager {
       await s3Client.send(command);
     } catch (error) {
       console.error("Error saving resume metadata to S3:", error);
-      // Don't throw error for S3 backup failure
+      throw new Error("Failed to save resume metadata to S3");
     }
   }
 
   static async loadMetadata(): Promise<ResumeInfo | null> {
     try {
+      const s3Client = createS3Client();
       const command = new GetObjectCommand({
         Bucket: process.env.BUCKET_NAME!,
         Key: RESUME_METADATA_S3_KEY,
@@ -147,19 +118,25 @@ class S3Manager {
   }
 
   static async uploadFile(file: File, key: string): Promise<void> {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    try {
+      const s3Client = createS3Client();
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-    const commandOptions: PutObjectCommandInput = {
-      Bucket: process.env.BUCKET_NAME!,
-      Key: key,
-      Body: buffer,
-      ContentType: file.type,
-      ContentLength: file.size,
-    };
+      const commandOptions: PutObjectCommandInput = {
+        Bucket: process.env.BUCKET_NAME!,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+        ContentLength: file.size,
+      };
 
-    const command = new PutObjectCommand(commandOptions);
-    await s3Client.send(command);
+      const command = new PutObjectCommand(commandOptions);
+      await s3Client.send(command);
+    } catch (error) {
+      console.error("Error uploading file to S3:", error);
+      throw new Error("Failed to upload file to S3");
+    }
   }
 }
 
@@ -209,8 +186,7 @@ export async function uploadResume(file: File): Promise<ResumeInfo> {
     // Create resume info
     const resumeInfo = createResumeInfo(key, fileName, file.size);
 
-    // Save metadata to file system and S3 backup
-    FileSystemManager.saveMetadata(resumeInfo);
+    // Save metadata to S3 only (no file system operations for Vercel compatibility)
     await S3Manager.saveMetadata({
       ...resumeInfo,
       uploadedAt: resumeInfo.uploadedAt.toISOString(),
@@ -228,13 +204,7 @@ export async function uploadResume(file: File): Promise<ResumeInfo> {
 
 export async function getCurrentResume(): Promise<ResumeInfo | null> {
   try {
-    // Try to load from file system first
-    const fileMetadata = FileSystemManager.loadMetadata();
-    if (fileMetadata) {
-      return fileMetadata;
-    }
-
-    // Fallback to S3
+    // Load from S3 only (no file system operations for Vercel compatibility)
     return await S3Manager.loadMetadata();
   } catch (error) {
     console.error("Error getting current resume:", error);
