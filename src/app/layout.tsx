@@ -10,19 +10,19 @@ import { siteConfig } from "@/lib/site";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata = {
-  title: `${siteConfig.name} - Portfolio & Blog`,
+  title: siteConfig.name,
   description: siteConfig.description,
-  metadataBase: new URL("https://example.com"),
+  metadataBase: new URL("https://nazar-zhyliuk.vercel.app"),
   openGraph: {
-    title: `${siteConfig.name} - Portfolio & Blog`,
+    title: siteConfig.name,
     description: siteConfig.description,
-    url: "https://example.com",
+    url: "https://nazar-zhyliuk.vercel.app",
     siteName: siteConfig.name,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} - Portfolio & Blog`,
+    title: siteConfig.name,
     description: siteConfig.description,
   },
 };

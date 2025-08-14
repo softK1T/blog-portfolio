@@ -94,7 +94,7 @@ export const siteConfig = {
   /** Contact information displayed on the homepage */
   contact: {
     email: "nazar12522@gmail.com",
-    location: "Ukraine",
+    location: "Poland",
     availability: "Available for new opportunities",
   },
 
