@@ -14,7 +14,6 @@ import {
   Download,
   Code,
   Database,
-  Globe,
   FileText,
   Briefcase,
   Loader2,
@@ -24,12 +23,7 @@ import {
   Users,
   Languages,
 } from "lucide-react";
-import {
-  portfolioService,
-  blogService,
-  PortfolioItem,
-  BlogPost,
-} from "@/lib/services";
+import { portfolioService, blogService } from "@/lib/services";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Container } from "@/components/Container";
 import SectionHeader from "@/components/SectionHeader";
@@ -97,7 +91,6 @@ export default function Home() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  const loading = portfolioLoading || blogLoading;
   const error = portfolioError || blogError;
 
   const handleResumeDownload = async () => {
@@ -298,7 +291,6 @@ export default function Home() {
               {portfolioItems.map((project) => (
                 <div key={project.id} className="relative">
                   <ContentCard
-                    id={project.id || ""}
                     title={project.title}
                     description={project.description}
                     media={project.media}
@@ -375,7 +367,6 @@ export default function Home() {
               {blogPosts.map((post) => (
                 <div key={post.id} className="relative">
                   <ContentCard
-                    id={post.id || ""}
                     title={post.title}
                     description={post.summary}
                     media={post.media}

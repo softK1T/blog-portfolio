@@ -1,24 +1,28 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Github,
-  ExternalLink,
-  Briefcase,
   ArrowRight,
+  Briefcase,
+  ExternalLink,
+  Github,
   Code,
 } from "lucide-react";
-import Link from "next/link";
-import { portfolioService, PortfolioItem } from "@/lib/services";
-import { useDataLoader } from "@/hooks/useDataLoader";
+import { portfolioService } from "@/lib/services";
 import PageLayout from "@/components/PageLayout";
+import { useDataLoader } from "@/hooks/useDataLoader";
 import ContentGrid from "@/components/ContentGrid";
 import ContentCard from "@/components/ContentCard";
 
 export default function PortfolioPage() {
-  const { data: portfolioItems, loading, error } = useDataLoader({
+  const {
+    data: portfolioItems,
+    loading,
+    error,
+  } = useDataLoader({
     loader: () => portfolioService.getProjects(),
   });
 
@@ -33,15 +37,14 @@ export default function PortfolioPage() {
         <ContentGrid loading={loading}>
           {portfolioItems.map((project) => (
             <div key={project.id} className="relative">
-                             <ContentCard
-                 id={project.id || ""}
-                 title={project.title}
-                 description={project.description}
-                 media={project.media}
-                 tags={project.technologies}
-                 href={`/portfolio/${project.id}`}
-                 showTags={true}
-               />
+              <ContentCard
+                title={project.title}
+                description={project.description}
+                media={project.media}
+                tags={project.technologies}
+                href={`/portfolio/${project.id}`}
+                showTags={true}
+              />
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

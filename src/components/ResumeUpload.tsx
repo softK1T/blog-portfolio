@@ -36,7 +36,6 @@ interface UploadState {
 
 // Constants
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPE = "application/pdf";
 
 // Utility Functions
 const formatFileSize = (bytes: number): string => {
@@ -75,7 +74,7 @@ const uploadResumeFile = async (file: File): Promise<ResumeInfo> => {
   formData.append("file", file);
 
   const response = await fetch("/api/resume/upload", {
-    // method: "POST
+    method: "POST",
     body: formData,
   });
 
@@ -153,24 +152,6 @@ export default function ResumeUpload({
     loadCurrentResume();
   }, []);
 
-  // File selection handler
-  const handleFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const validationError = validateFile(file);
-      if (validationError) {
-        setState((prev) => ({ ...prev, error: validationError }));
-        return;
-      }
-
-      setState((prev) => ({ ...prev, error: null }));
-      handleUpload(file);
-    },
-    []
-  );
-
   // Upload handler
   const handleUpload = useCallback(
     async (file: File) => {
@@ -200,6 +181,21 @@ export default function ResumeUpload({
     },
     [onResumeUpdate]
   );
+
+  // File selection handler
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validationError = validateFile(file);
+    if (validationError) {
+      setState((prev) => ({ ...prev, error: validationError }));
+      return;
+    }
+
+    setState((prev) => ({ ...prev, error: null }));
+    handleUpload(file);
+  };
 
   // Download handler
   const handleDownload = useCallback(async () => {

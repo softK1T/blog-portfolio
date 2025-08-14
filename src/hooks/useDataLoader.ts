@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface UseDataLoaderOptions<T> {
   loader: () => Promise<T>;
-  dependencies?: any[];
-  onError?: (error: Error) => void;
 }
 
 interface UseDataLoaderResult<T> {
@@ -15,32 +13,27 @@ interface UseDataLoaderResult<T> {
 
 export function useDataLoader<T>({
   loader,
-  dependencies = [],
-  onError,
 }: UseDataLoaderOptions<T>): UseDataLoaderResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const result = await loader();
       setData(result);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load data";
-      setError(errorMessage);
-      onError?.(err instanceof Error ? err : new Error(errorMessage));
+      setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [loader]);
 
   useEffect(() => {
     loadData();
-  }, dependencies);
+  }, [loadData]);
 
   return {
     data,

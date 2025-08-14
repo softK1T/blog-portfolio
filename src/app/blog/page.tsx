@@ -3,16 +3,19 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Tag, Code } from "lucide-react";
-import { blogService, BlogPost } from "@/lib/services";
-import { useDataLoader } from "@/hooks/useDataLoader";
+import { ArrowRight, FileText } from "lucide-react";
+import { blogService } from "@/lib/services";
 import PageLayout from "@/components/PageLayout";
+import { useDataLoader } from "@/hooks/useDataLoader";
 import ContentGrid from "@/components/ContentGrid";
 import ContentCard from "@/components/ContentCard";
 
 export default function BlogPage() {
-  const { data: posts, loading, error } = useDataLoader({
+  const {
+    data: posts,
+    loading,
+    error,
+  } = useDataLoader({
     loader: () => blogService.getPosts(),
   });
 
@@ -28,7 +31,6 @@ export default function BlogPage() {
           {posts.map((post) => (
             <div key={post.id} className="relative">
               <ContentCard
-                id={post.id || ""}
                 title={post.title}
                 description={post.summary}
                 media={post.media}
@@ -51,13 +53,10 @@ export default function BlogPage() {
         </ContentGrid>
       ) : (
         <div className="text-center py-12">
-          <Code className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">
-            No Development Posts Yet
-          </h2>
+          <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">No Development Posts Yet</h2>
           <p className="text-muted-foreground mb-6">
-            Check back soon for technical walkthroughs and project
-            insights!
+            Check back soon for technical walkthroughs and project insights!
           </p>
         </div>
       )}
@@ -69,10 +68,9 @@ export default function BlogPage() {
             Interested in My Development Process?
           </h2>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Each blog post provides detailed technical insights, code
-            examples, and lessons learned from building real-world
-            applications. Perfect for developers looking to understand modern
-            development practices.
+            Each blog post provides detailed technical insights, code examples,
+            and lessons learned from building real-world applications. Perfect
+            for developers looking to understand modern development practices.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/portfolio">
@@ -80,7 +78,7 @@ export default function BlogPage() {
             </Link>
             <Link href="/admin/blog">
               <Button>
-                <Code className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 Add Development Post
               </Button>
             </Link>
