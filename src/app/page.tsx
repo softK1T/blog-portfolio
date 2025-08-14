@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,10 @@ import {
   Briefcase,
   Loader2,
   AlertCircle,
+  Cloud,
+  Settings,
+  Users,
+  Languages,
 } from "lucide-react";
 import {
   portfolioService,
@@ -37,14 +41,40 @@ import ContentCard from "@/components/ContentCard";
 
 const skills = [
   {
-    category: "Frontend",
-    items: siteConfig.skills.frontend,
+    category: "Data & Orchestration",
+    items: siteConfig.skills.dataOrchestration,
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    category: "DevOps & Cloud",
+    items: siteConfig.skills.devopsCloud,
+    icon: <Cloud className="h-5 w-5" />,
   },
   {
     category: "Backend",
     items: siteConfig.skills.backend,
+    icon: <Database className="h-5 w-5" />,
   },
-  { category: "Tools", items: siteConfig.skills.tools },
+  {
+    category: "Frontend",
+    items: siteConfig.skills.frontend,
+    icon: <Code className="h-5 w-5" />,
+  },
+  {
+    category: "Tools",
+    items: siteConfig.skills.tools,
+    icon: <Settings className="h-5 w-5" />,
+  },
+  {
+    category: "Soft Skills",
+    items: siteConfig.skills.softSkills,
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    category: "Languages",
+    items: siteConfig.skills.languages,
+    icon: <Languages className="h-5 w-5" />,
+  },
 ];
 
 export default function Home() {
@@ -64,8 +94,77 @@ export default function Home() {
     loader: () => blogService.getPosts(3),
   });
 
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const loading = portfolioLoading || blogLoading;
   const error = portfolioError || blogError;
+
+  const handleResumeDownload = async () => {
+    setIsDownloading(true);
+    setDownloadError(null);
+
+    try {
+      // First, get the current resume information
+      const currentResumeResponse = await fetch("/api/resume/current");
+
+      if (!currentResumeResponse.ok) {
+        // If no resume is found, fallback to static file
+        const link = document.createElement("a");
+        link.href = "/resume.pdf";
+        link.download = "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      const currentResumeData = await currentResumeResponse.json();
+
+      if (!currentResumeData.success || !currentResumeData.resume) {
+        throw new Error("No current resume found");
+      }
+
+      // Get signed download URL for the current resume
+      const response = await fetch(
+        `/api/resume/download?key=${currentResumeData.resume.key}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate download URL");
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.downloadUrl) {
+        const link = document.createElement("a");
+        link.href = data.downloadUrl;
+        link.download = currentResumeData.resume.filename || "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        throw new Error("Failed to get download URL");
+      }
+    } catch (error) {
+      console.error("Resume download error:", error);
+      setDownloadError("Failed to download resume. Please try again.");
+
+      // Fallback to static file
+      try {
+        const link = document.createElement("a");
+        link.href = "/resume.pdf";
+        link.download = "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (fallbackError) {
+        console.error("Fallback download also failed:", fallbackError);
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -91,13 +190,27 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/resume.pdf" target="_blank">
-              <Button variant="outline" size="lg">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleResumeDownload}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
                 <Download className="mr-2 h-4 w-4" />
-                Download Resume
-              </Button>
-            </Link>
+              )}
+              Download Resume
+            </Button>
           </div>
+
+          {downloadError && (
+            <Alert variant="destructive" className="max-w-md mx-auto">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{downloadError}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="flex justify-center gap-6 pt-8">
             <a
@@ -144,27 +257,19 @@ export default function Home() {
           icon={<Code className="h-8 w-8 text-primary" />}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {skills.map((skillGroup) => (
             <Card key={skillGroup.category}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  {skillGroup.category === "Frontend" && (
-                    <Code className="h-5 w-5" />
-                  )}
-                  {skillGroup.category === "Backend" && (
-                    <Database className="h-5 w-5" />
-                  )}
-                  {skillGroup.category === "Tools" && (
-                    <Globe className="h-5 w-5" />
-                  )}
+                  {skillGroup.icon}
                   {skillGroup.category}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {skillGroup.items.map((skill) => (
-                    <Badge key={skill} variant="secondary">
+                    <Badge key={skill} variant="secondary" className="text-xs">
                       {skill}
                     </Badge>
                   ))}

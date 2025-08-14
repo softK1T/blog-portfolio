@@ -100,9 +100,33 @@ export const siteConfig = {
 
   /** Skills and technologies organized by category */
   skills: {
-    frontend: ["React", "Next.js", "TypeScript", "Vue.js", "Tailwind CSS"],
-    backend: ["Node.js", "Express", "Python", "Django", "PostgreSQL"],
-    tools: ["Git", "Docker", "AWS", "Vercel", "Figma"],
+    frontend: [
+      "React",
+      "Next.js",
+      "Vite",
+      "TypeScript",
+      "Tailwind CSS",
+      "shadcn",
+    ],
+    backend: ["Python", "FastAPI", "Ruby", "Node.js", "C#", "Java"],
+    dataOrchestration: [
+      "Apache Airflow",
+      "ETL/ELT design",
+      "SQL",
+      "SQLAlchemy",
+      "PostgreSQL",
+      "Pandas",
+    ],
+    devopsCloud: [
+      "Docker & Docker Compose",
+      "Google Cloud",
+      "AWS S3",
+      "Vercel",
+      "Nginx",
+    ],
+    tools: ["Git", "Jira & Confluence", "BeautifulSoup", "Prisma"],
+    softSkills: ["Cross‑functional collaboration", "Problem solving"],
+    languages: ["English", "Polish", "Ukrainian", "Russian"],
   },
 } as const;
 

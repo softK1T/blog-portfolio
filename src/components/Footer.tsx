@@ -30,7 +30,7 @@ export default function Footer() {
             </a>
           </div>
           <p className="text-sm text-muted-foreground text-center md:text-left">
-            © 2024 {siteConfig.name}. Built with Next.js, Firebase, and AWS S3
+            © 2025 {siteConfig.name}. Built with Next.js, Firebase, and AWS S3
           </p>
         </div>
       </Container>
