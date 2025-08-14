@@ -216,7 +216,7 @@ export default function Home() {
                   <CardTitle className="group-hover:text-primary transition-colors">
                     {project.title}
                   </CardTitle>
-                  <CardDescription className="line-clamp-3">
+                  <CardDescription className="line-clamp-3 max-w-sm lg:max-w-md">
                     {project.description}
                   </CardDescription>
                 </CardHeader>

@@ -240,7 +240,7 @@ export default function PortfolioListPage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{project.title}</div>
-                            <div className="text-sm text-muted-foreground line-clamp-2">
+                            <div className="text-sm text-muted-foreground line-clamp-2 max-w-xs lg:max-w-md">
                               {project.description}
                             </div>
                           </div>
