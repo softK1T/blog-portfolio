@@ -1,4 +1,4 @@
-import { uploadMedia, getSignedMediaUrl } from "@/lib/s3";
+import { getSignedMediaUrl } from "@/lib/s3";
 import {
   S3Client,
   PutObjectCommand,
@@ -29,7 +29,6 @@ interface SerializedResumeInfo {
 const RESUME_METADATA_FILE = join(process.cwd(), "data", "current-resume.json");
 const RESUME_METADATA_S3_KEY = "uploads/resumes/metadata.json";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPE = "application/pdf";
 
 // S3 Client
 const s3Client = new S3Client({
@@ -252,7 +251,7 @@ export async function getResumeDownloadUrl(key: string): Promise<string> {
   }
 }
 
-export async function deleteResume(key: string): Promise<void> {
+export async function deleteResume(): Promise<void> {
   try {
     // TODO: Implement S3 deletion and metadata cleanup
     console.log("Resume deletion not yet implemented");

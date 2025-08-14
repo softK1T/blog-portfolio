@@ -26,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Plus,
   Edit,
@@ -39,7 +38,7 @@ import {
   Calendar,
   Tag,
 } from "lucide-react";
-import { portfolioService, PortfolioItem } from "@/lib/services";
+import { portfolioService } from "@/lib/services";
 import { useDataLoader } from "@/hooks/useDataLoader";
 import PageLayout from "@/components/PageLayout";
 
