@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -40,30 +40,19 @@ import {
   Tag,
 } from "lucide-react";
 import { portfolioService, PortfolioItem } from "@/lib/services";
+import { useDataLoader } from "@/hooks/useDataLoader";
+import PageLayout from "@/components/PageLayout";
 
 export default function PortfolioListPage() {
   const { user, isAdmin, loading } = useAuth();
-  const [projects, setProjects] = useState<PortfolioItem[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        setLoadingProjects(true);
-        // Load all projects (not just published ones for admin view)
-        const allProjects = await portfolioService.getAllProjects();
-        setProjects(allProjects);
-      } catch (error) {
-        console.error("Error loading projects:", error);
-        setError("Failed to load projects");
-      } finally {
-        setLoadingProjects(false);
-      }
-    };
-
-    loadProjects();
-  }, []);
+  const {
+    data: projects,
+    loading: loadingProjects,
+    error,
+    refetch,
+  } = useDataLoader({
+    loader: () => portfolioService.getAllProjects(),
+  });
 
   const handleDeleteProject = async (projectId: string) => {
     if (!confirm("Are you sure you want to delete this project?")) {
@@ -72,10 +61,9 @@ export default function PortfolioListPage() {
 
     try {
       await portfolioService.deleteProject(projectId);
-      setProjects(projects.filter((p) => p.id !== projectId));
+      refetch(); // Refresh the data after deletion
     } catch (error) {
       console.error("Error deleting project:", error);
-      setError("Failed to delete project");
     }
   };
 
@@ -87,14 +75,9 @@ export default function PortfolioListPage() {
       await portfolioService.updateProject(projectId, {
         published: !currentPublished,
       });
-      setProjects(
-        projects.map((p) =>
-          p.id === projectId ? { ...p, published: !currentPublished } : p
-        )
-      );
+      refetch(); // Refresh the data after update
     } catch (error) {
       console.error("Error updating project:", error);
-      setError("Failed to update project");
     }
   };
 
@@ -127,258 +110,237 @@ export default function PortfolioListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Portfolio Projects</h1>
-            <p className="text-muted-foreground">
-              Manage your portfolio projects and their content
+    <PageLayout
+      title="Portfolio Projects"
+      subtitle="Manage your portfolio projects and their content"
+      loading={loadingProjects}
+      error={error}
+    >
+      {/* Header Actions */}
+      <div className="flex justify-end mb-6">
+        <Link href="/admin/portfolio">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Project
+          </Button>
+        </Link>
+      </div>
+
+      {projects && projects.length > 0 ? (
+        <div className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{projects.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Published
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {projects.filter((p) => p.published).length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Featured
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {projects.filter((p) => p.featured).length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  With Dev Logs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">
+                  {
+                    projects.filter(
+                      (p) => p.developmentLogs && p.developmentLogs.length > 0
+                    ).length
+                  }
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Projects Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Projects</CardTitle>
+              <CardDescription>
+                View and manage all your portfolio projects
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Technologies</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Dev Logs</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projects.map((project) => (
+                    <TableRow key={project.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{project.title}</div>
+                          <div className="text-sm text-muted-foreground line-clamp-2 max-w-xs lg:max-w-md">
+                            {project.description}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            variant={
+                              project.published ? "default" : "secondary"
+                            }
+                            className="w-fit"
+                          >
+                            {project.published ? "Published" : "Draft"}
+                          </Badge>
+                          {project.featured && (
+                            <Badge variant="outline" className="w-fit">
+                              Featured
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {project.technologies.slice(0, 3).map((tech) => (
+                            <Badge
+                              key={tech}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {tech}
+                            </Badge>
+                          ))}
+                          {project.technologies.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{project.technologies.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {project.createdAt.toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Code className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {project.developmentLogs?.length || 0}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/portfolio/${project.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/admin/portfolio/edit/${project.id}`}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/projects/${project.id}/logs`}>
+                                <Code className="mr-2 h-4 w-4" />
+                                Dev Logs
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                togglePublished(project.id!, project.published)
+                              }
+                            >
+                              {project.published ? (
+                                <>
+                                  <Tag className="mr-2 h-4 w-4" />
+                                  Unpublish
+                                </>
+                              ) : (
+                                <>
+                                  <Tag className="mr-2 h-4 w-4" />
+                                  Publish
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteProject(project.id!)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground mb-4">
+            <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg">No projects found</p>
+            <p className="text-sm mt-2">
+              Get started by adding your first portfolio project
             </p>
           </div>
           <Link href="/admin/portfolio">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add New Project
+              Add Your First Project
             </Button>
           </Link>
         </div>
-
-        {/* Error Display */}
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Projects Table */}
-        {loadingProjects ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : projects.length > 0 ? (
-          <div className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Projects
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{projects.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Published
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {projects.filter((p) => p.published).length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Featured
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {projects.filter((p) => p.featured).length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    With Dev Logs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {
-                      projects.filter(
-                        (p) => p.developmentLogs && p.developmentLogs.length > 0
-                      ).length
-                    }
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Projects Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>All Projects</CardTitle>
-                <CardDescription>
-                  View and manage all your portfolio projects
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Technologies</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Dev Logs</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {projects.map((project) => (
-                      <TableRow key={project.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{project.title}</div>
-                            <div className="text-sm text-muted-foreground line-clamp-2">
-                              {project.description}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge
-                              variant={
-                                project.published ? "default" : "secondary"
-                              }
-                              className="w-fit"
-                            >
-                              {project.published ? "Published" : "Draft"}
-                            </Badge>
-                            {project.featured && (
-                              <Badge variant="outline" className="w-fit">
-                                Featured
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {project.technologies.slice(0, 3).map((tech) => (
-                              <Badge
-                                key={tech}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {tech}
-                              </Badge>
-                            ))}
-                            {project.technologies.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{project.technologies.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            {project.createdAt.toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Code className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              {project.developmentLogs?.length || 0}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/portfolio/${project.id}`}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/admin/portfolio/edit/${project.id}`}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/admin/projects/${project.id}/logs`}
-                                >
-                                  <Code className="mr-2 h-4 w-4" />
-                                  Dev Logs
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  togglePublished(
-                                    project.id!,
-                                    project.published
-                                  )
-                                }
-                              >
-                                {project.published ? (
-                                  <>
-                                    <Tag className="mr-2 h-4 w-4" />
-                                    Unpublish
-                                  </>
-                                ) : (
-                                  <>
-                                    <Tag className="mr-2 h-4 w-4" />
-                                    Publish
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteProject(project.id!)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-muted-foreground mb-4">
-              <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">No projects found</p>
-              <p className="text-sm mt-2">
-                Get started by adding your first portfolio project
-              </p>
-            </div>
-            <Link href="/admin/portfolio">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Project
-              </Button>
-            </Link>
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </PageLayout>
   );
 }

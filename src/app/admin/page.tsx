@@ -11,7 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, FileText, Briefcase, BarChart3, Loader2 } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  Briefcase,
+  BarChart3,
+  Loader2,
+  FileText as ResumeIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { portfolioService, blogService } from "@/lib/services";
 
@@ -123,18 +130,19 @@ export default function AdminPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Portfolio Management */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
-                Portfolio Management
+                Portfolio
               </CardTitle>
               <CardDescription>
-                Add, edit, and manage your portfolio projects
+                Manage your portfolio projects and showcase your work
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Link href="/admin/portfolio">
                 <Button className="w-full">
                   <Plus className="mr-2 h-4 w-4" />
@@ -143,23 +151,25 @@ export default function AdminPage() {
               </Link>
               <Link href="/portfolio/list">
                 <Button variant="outline" className="w-full">
+                  <BarChart3 className="mr-2 h-4 w-4" />
                   View All Projects
                 </Button>
               </Link>
             </CardContent>
           </Card>
 
+          {/* Blog Management */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Blog Management
+                Blog
               </CardTitle>
               <CardDescription>
-                Create and manage your blog posts
+                Create and manage your development blog posts
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Link href="/admin/blog">
                 <Button className="w-full">
                   <Plus className="mr-2 h-4 w-4" />
@@ -168,28 +178,37 @@ export default function AdminPage() {
               </Link>
               <Link href="/blog/list">
                 <Button variant="outline" className="w-full">
+                  <BarChart3 className="mr-2 h-4 w-4" />
                   View All Posts
                 </Button>
               </Link>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Latest updates to your portfolio and blog
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No recent activity to display</p>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Resume Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ResumeIcon className="h-5 w-5" />
+                Resume
+              </CardTitle>
+              <CardDescription>
+                Upload and manage your resume for the portfolio
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link href="/admin/resume">
+                <Button className="w-full">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Manage Resume
+                </Button>
+              </Link>
+              <div className="text-xs text-muted-foreground">
+                Upload PDF files up to 5MB
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

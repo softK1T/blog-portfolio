@@ -1,15 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
@@ -25,65 +19,152 @@ import {
   Briefcase,
   Loader2,
   AlertCircle,
+  Cloud,
+  Settings,
+  Users,
+  Languages,
 } from "lucide-react";
 import {
   portfolioService,
   blogService,
   PortfolioItem,
   BlogPost,
-  MediaItem,
 } from "@/lib/services";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Container } from "@/components/Container";
 import SectionHeader from "@/components/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { siteConfig } from "@/lib/site";
-import { getPublicAssetUrl } from "@/lib/utils";
+import { useDataLoader } from "@/hooks/useDataLoader";
+import ContentGrid from "@/components/ContentGrid";
+import ContentCard from "@/components/ContentCard";
 
 const skills = [
   {
-    category: "Frontend",
-    items: siteConfig.skills.frontend,
+    category: "Data & Orchestration",
+    items: siteConfig.skills.dataOrchestration,
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    category: "DevOps & Cloud",
+    items: siteConfig.skills.devopsCloud,
+    icon: <Cloud className="h-5 w-5" />,
   },
   {
     category: "Backend",
     items: siteConfig.skills.backend,
+    icon: <Database className="h-5 w-5" />,
   },
-  { category: "Tools", items: siteConfig.skills.tools },
+  {
+    category: "Frontend",
+    items: siteConfig.skills.frontend,
+    icon: <Code className="h-5 w-5" />,
+  },
+  {
+    category: "Tools",
+    items: siteConfig.skills.tools,
+    icon: <Settings className="h-5 w-5" />,
+  },
+  {
+    category: "Soft Skills",
+    items: siteConfig.skills.softSkills,
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    category: "Languages",
+    items: siteConfig.skills.languages,
+    icon: <Languages className="h-5 w-5" />,
+  },
 ];
 
 export default function Home() {
-  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: portfolioItems,
+    loading: portfolioLoading,
+    error: portfolioError,
+  } = useDataLoader({
+    loader: () => portfolioService.getProjects(3),
+  });
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Loading data from Firestore
+  const {
+    data: blogPosts,
+    loading: blogLoading,
+    error: blogError,
+  } = useDataLoader({
+    loader: () => blogService.getPosts(3),
+  });
 
-        const [projects, posts] = await Promise.all([
-          portfolioService.getProjects(3),
-          blogService.getPosts(3),
-        ]);
-        // Data loaded successfully
-        setPortfolioItems(projects);
-        setBlogPosts(posts);
-      } catch (error) {
-        setError(
-          error instanceof Error ? error.message : "Failed to load data"
-        );
-        // Set empty arrays to show the UI without data
-        setPortfolioItems([]);
-        setBlogPosts([]);
-      } finally {
-        setLoading(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const loading = portfolioLoading || blogLoading;
+  const error = portfolioError || blogError;
+
+  const handleResumeDownload = async () => {
+    setIsDownloading(true);
+    setDownloadError(null);
+
+    try {
+      // First, get the current resume information
+      const currentResumeResponse = await fetch("/api/resume/current");
+
+      if (!currentResumeResponse.ok) {
+        // If no resume is found, fallback to static file
+        const link = document.createElement("a");
+        link.href = "/resume.pdf";
+        link.download = "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
       }
-    };
 
-    loadData();
-  }, []);
+      const currentResumeData = await currentResumeResponse.json();
+
+      if (!currentResumeData.success || !currentResumeData.resume) {
+        throw new Error("No current resume found");
+      }
+
+      // Get signed download URL for the current resume
+      const response = await fetch(
+        `/api/resume/download?key=${currentResumeData.resume.key}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate download URL");
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.downloadUrl) {
+        const link = document.createElement("a");
+        link.href = data.downloadUrl;
+        link.download = currentResumeData.resume.filename || "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        throw new Error("Failed to get download URL");
+      }
+    } catch (error) {
+      console.error("Resume download error:", error);
+      setDownloadError("Failed to download resume. Please try again.");
+
+      // Fallback to static file
+      try {
+        const link = document.createElement("a");
+        link.href = "/resume.pdf";
+        link.download = "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (fallbackError) {
+        console.error("Fallback download also failed:", fallbackError);
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -109,13 +190,27 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/resume.pdf" target="_blank">
-              <Button variant="outline" size="lg">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleResumeDownload}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
                 <Download className="mr-2 h-4 w-4" />
-                Download Resume
-              </Button>
-            </Link>
+              )}
+              Download Resume
+            </Button>
           </div>
+
+          {downloadError && (
+            <Alert variant="destructive" className="max-w-md mx-auto">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{downloadError}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="flex justify-center gap-6 pt-8">
             <a
@@ -162,27 +257,19 @@ export default function Home() {
           icon={<Code className="h-8 w-8 text-primary" />}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {skills.map((skillGroup) => (
             <Card key={skillGroup.category}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  {skillGroup.category === "Frontend" && (
-                    <Code className="h-5 w-5" />
-                  )}
-                  {skillGroup.category === "Backend" && (
-                    <Database className="h-5 w-5" />
-                  )}
-                  {skillGroup.category === "Tools" && (
-                    <Globe className="h-5 w-5" />
-                  )}
+                  {skillGroup.icon}
                   {skillGroup.category}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {skillGroup.items.map((skill) => (
-                    <Badge key={skill} variant="secondary">
+                    <Badge key={skill} variant="secondary" className="text-xs">
                       {skill}
                     </Badge>
                   ))}
@@ -201,73 +288,25 @@ export default function Home() {
           icon={<Briefcase className="h-8 w-8 text-primary" />}
         />
 
-        {loading ? (
+        {portfolioLoading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        ) : portfolioItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {portfolioItems.map((project) => (
-              <Card
-                key={project.id}
-                className="hover:shadow-lg transition-shadow group"
-              >
-                <CardHeader>
-                  <CardTitle className="group-hover:text-primary transition-colors">
-                    {project.title}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-3">
-                    {project.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Media Gallery */}
-                  {project.media && project.media.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                      {project.media
-                        .slice(0, 2)
-                        .map((m: MediaItem, i: number) => {
-                          const url = getPublicAssetUrl(m.key);
-                          return (
-                            <div
-                              key={`${m.key}-${i}`}
-                              className="rounded-md overflow-hidden border"
-                            >
-                              {m.type === "image" ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={url}
-                                  alt={m.caption || `media-${i}`}
-                                  className="w-full h-32 object-cover"
-                                />
-                              ) : (
-                                <video
-                                  controls
-                                  src={url}
-                                  className="w-full h-32 object-cover"
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      {project.media.length > 2 && (
-                        <div className="flex items-center justify-center bg-muted rounded-md border">
-                          <span className="text-sm text-muted-foreground">
-                            +{project.media.length - 2} more
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {project.technologies.map((tech) => (
-                      <Badge key={tech} variant="outline" className="text-xs">
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2">
+        ) : portfolioItems && portfolioItems.length > 0 ? (
+          <>
+            <ContentGrid loading={portfolioLoading}>
+              {portfolioItems.map((project) => (
+                <div key={project.id} className="relative">
+                  <ContentCard
+                    id={project.id || ""}
+                    title={project.title}
+                    description={project.description}
+                    media={project.media}
+                    tags={project.technologies}
+                    href={`/portfolio/${project.id}`}
+                    showTags={true}
+                  />
+                  <div className="mt-4 flex items-center gap-2">
                     {project.githubLink && (
                       <a
                         href={project.githubLink}
@@ -289,10 +328,18 @@ export default function Home() {
                       </a>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              ))}
+            </ContentGrid>
+            <div className="text-center mt-8">
+              <Link href="/portfolio">
+                <Button variant="outline" size="lg">
+                  View All Projects
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />}
@@ -308,17 +355,6 @@ export default function Home() {
             }
           />
         )}
-
-        {portfolioItems.length > 0 && (
-          <div className="text-center mt-8">
-            <Link href="/portfolio">
-              <Button variant="outline" size="lg">
-                View All Projects
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        )}
       </Container>
 
       {/* Latest Development Blog Posts Section */}
@@ -329,79 +365,46 @@ export default function Home() {
           icon={<FileText className="h-8 w-8 text-primary" />}
         />
 
-        {loading ? (
+        {blogLoading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        ) : blogPosts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts.map((post) => (
-              <Card
-                key={post.id}
-                className="hover:shadow-lg transition-shadow group"
-              >
-                <CardHeader>
-                  <CardTitle className="group-hover:text-primary transition-colors line-clamp-2">
-                    {post.title}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-3">
-                    {post.summary}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Media Gallery */}
-                  {post.media && post.media.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                      {post.media.slice(0, 2).map((m: MediaItem, i: number) => {
-                        const url = getPublicAssetUrl(m.key);
-                        return (
-                          <div
-                            key={`${m.key}-${i}`}
-                            className="rounded-md overflow-hidden border"
-                          >
-                            {m.type === "image" ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={url}
-                                alt={m.caption || `media-${i}`}
-                                className="w-full h-32 object-cover"
-                              />
-                            ) : (
-                              <video
-                                controls
-                                src={url}
-                                className="w-full h-32 object-cover"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                      {post.media.length > 2 && (
-                        <div className="flex items-center justify-center bg-muted rounded-md border">
-                          <span className="text-sm text-muted-foreground">
-                            +{post.media.length - 2} more
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {post.tags.slice(0, 3).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+        ) : blogPosts && blogPosts.length > 0 ? (
+          <>
+            <ContentGrid loading={blogLoading}>
+              {blogPosts.map((post) => (
+                <div key={post.id} className="relative">
+                  <ContentCard
+                    id={post.id || ""}
+                    title={post.title}
+                    description={post.summary}
+                    media={post.media}
+                    tags={post.tags}
+                    date={post.createdAt}
+                    href={`/blog/${post.id}`}
+                    showDate={true}
+                    showTags={true}
+                  />
+                  <div className="mt-4">
+                    <Link href={`/blog/${post.id}`}>
+                      <Button variant="ghost" size="sm">
+                        Read More
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
-                  <Link href={`/blog/${post.id}`}>
-                    <Button variant="ghost" size="sm">
-                      Read More
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              ))}
+            </ContentGrid>
+            <div className="text-center mt-8">
+              <Link href="/blog">
+                <Button variant="outline" size="lg">
+                  View All Posts
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />}
@@ -416,17 +419,6 @@ export default function Home() {
               </Link>
             }
           />
-        )}
-
-        {blogPosts.length > 0 && (
-          <div className="text-center mt-8">
-            <Link href="/blog">
-              <Button variant="outline" size="lg">
-                View All Posts
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
         )}
       </Container>
 

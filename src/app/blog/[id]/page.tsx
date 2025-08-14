@@ -198,7 +198,7 @@ export default function BlogPostPage() {
         )}
 
         {/* Post Content */}
-        <div className="prose prose-lg max-w-none">
+        <div className="prose prose-lg max-w-none max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={markdownComponents}

@@ -41,13 +41,13 @@ const s3Client = new S3Client({
 /**
  * Media type classification for uploaded files.
  */
-export type MediaType = "image" | "video";
+export type MediaType = "image" | "video" | "resume";
 
 /**
  * Entity type for organizing uploaded media files.
  * Determines the folder structure in S3.
  */
-export type EntityType = "post" | "log" | "project";
+export type EntityType = "post" | "log" | "project" | "resume";
 
 /**
  * Generates a unique filename with timestamp and random string.
